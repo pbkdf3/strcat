@@ -1,6 +1,6 @@
 strcat - poorly named utility to treat mapr streams as files
 
-To even build this you need a MapR cluster, the MapR sandbox (https://www.mapr.com/products/mapr-sandbox-hadoop/download) will also work.  You can build and run strcat from a linux box with the MapR client installed, or from any cluster node.  You will need suitable development tools.  I work on Centos 7, 'yum -y groupinstall "Development Tools"' will work there (also on Centos 6, which the MapR 5.1 Sandbox uses).
+To even build this you need a MapR cluster, the MapR sandbox (https://www.mapr.com/products/mapr-sandbox-hadoop/download) will also work.  You can build and run strcat from a linux box with the MapR client installed, or from any cluster node.  You can not build unless you are either building on a cluster node or a computer with the mapr client installed.  I have only tested on linux, not OSX or Windows, though with a properly tweaked build.sh it should work on either.  You will need suitable development tools.  'yum -y groupinstall "Development Tools"' will work on centos (which the MapR sandbox VM uses), and "apt-get build-essential" should work on debian and derivatives, though I haven't tried to compile strcat anywhere but centos 6 and 7.
 
 ## Download the repository:
 
@@ -10,19 +10,26 @@ To even build this you need a MapR cluster, the MapR sandbox (https://www.mapr.c
     cd strcat*
     ./build.sh
 
-There may be some warnings.  note version number.
+There may be some warnings.  note version number. (what #?, oh right there isn't one. HINT).
 
-If stdin is a terminal, strcat will consume from the streamtopic regex provided as an argument.  If -x is used, strcat will never exit.  Otherwise it exits once the timeout is reached with no data, currently 1000ms.  The timeout may be made an option in the future.  if -g is not specified an ephemeral consumer group id is assigned.
+If stdin is a terminal, strcat will operate in consumer mode and read from the streamtopic regex provided as an argument.  If -x is used and in consumer mode, strcat will never exit, polling the stream and producing output until killed.  Otherwise it exits once the timeout is reached with no data, currently 1000ms.  You can change this in the consumer configuration in the code and recompile for now.  The timeout may be made an option in the future.  -x has no effect if in producer mode.  If -g is not specified an ephemeral consumer group id is assigned.  -g has no effect in producer mode.
+
+If stdin is not a terminal, strcat will operate in producer mode and write into the streamtopic specified.  Regexes are not valid in producer mode.  In producer mode, strcat reads lines from stdin via getline() and puts each in the topic specified.  newlines are not included in the messages put into the stream.
+
+-p and -c allow forcing producer and consumer mode, useful in contexts where stdin/stdout may be captured by another process, even if not used, such as when running strcat under clustershell.  Or if trynig to insert messages into a topic from the console interactively.
 
 ## Use
 
-    [root@t3dn01 ~]# ./strcat
-    usage:  ./strcat [-x] [-g gid] /stream:topic
-    -x: do not exit on timeout, stream forever
-    -g gid: consumer group id
 
     [root@t3dn01 ~]# maprcli stream create -path /ingest -defaultpartitions 4
     Warning: produce/consume/topic permissions defaulting to creator. To change, execute 'maprcli stream edit -path /ingest -produceperm p -consumeperm p -topicperm p'
+
+    [root@t3dn01 ~]# ./strcat
+    usage: ./strcat [-xpc] [-g gid] /streamtopic
+       -x: do not exit on timeout, stream forever
+       -p: produce, stdin -> /stream:topic
+       -c: consume, /stream:regex -> stdout
+       -g: gid: consumer group id
 
     [root@t3dn01 ~]# time find / -type f | ./strcat /ingest:20160725
     real	     0m1.818s

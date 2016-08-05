@@ -51,6 +51,7 @@
 #endif
 
 long opt_poll_timeout = 1000;
+long opt_sleep = 0;
 int opt_exit_on_timeout = 1;
 char *opt_group_id=NULL;
 
@@ -92,6 +93,8 @@ consumer(const char *streamtopic)
 
     CHECK (consumer_init(streamtopic, opt_group_id, &config, &consumer),
            "consumer_init() failed");
+
+    sleep(opt_sleep);
 
     while (1) {
         streams_consumer_record_t *records;
@@ -223,7 +226,8 @@ void display_usage(char *name)
             " -x: do not exit on timeout, stream forever\n"
             " -p: produce, stdin -> /stream:topic\n"
             " -c: consume, /stream:regex -> stdout\n"
-            " -g: gid: consumer group id\n", name);
+            " -w secs: seconds to wait after subscription (for rebalancing)\n"
+            " -g gid: consumer group id\n", name);
     exit(-1);
 }
 
@@ -238,7 +242,7 @@ main(int argc, char *argv[])
 
     opterr = 0;
 
-    while ((c = getopt (argc, argv, "pcxg:")) != -1)
+    while ((c = getopt (argc, argv, "pcxg:w:")) != -1)
         switch (c) {
         case 'x':
             opt_exit_on_timeout = 0;
@@ -251,6 +255,9 @@ main(int argc, char *argv[])
             break;
         case 'g':
             opt_group_id = optarg;
+            break;
+        case 'w':
+            opt_sleep = atoi(optarg);
             break;
         default:
             abort();

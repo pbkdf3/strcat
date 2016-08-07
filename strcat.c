@@ -222,11 +222,11 @@ producer(const char *streamtopic)
 void display_usage(char *name)
 {
     fprintf(stderr,
-            "usage: %s [-xpc] [-g gid] /stream:regex\n"
+            "usage: %s [-xpc] [-g gid] [-w seconds] /stream:regex\n"
             " -x: do not exit on timeout, stream forever\n"
             " -p: produce, stdin -> /stream:topic\n"
             " -c: consume, /stream:regex -> stdout\n"
-            " -w secs: seconds to wait after subscription (for rebalancing)\n"
+            " -w seconds: seconds to wait after subscription (for rebalancing)\n"
             " -g gid: consumer group id\n", name);
     exit(-1);
 }

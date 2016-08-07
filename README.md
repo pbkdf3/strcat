@@ -18,6 +18,8 @@ If stdin is not a terminal, strcat will operate in producer mode and write into 
 
 -p and -c allow forcing producer and consumer mode, useful in contexts where stdin/stdout may be captured by another process, even if not used, such as when running strcat under clustershell.  Or if trynig to insert messages into a topic from the console interactively.
 
+-w [seconds] gives consumers using the same gid to rebalance and find out about each other, otherwise if starting multiple processes at once under the same group, a single consumer will do all the work.  Userful when launching via clustershell over mulitple nodes
+
 ## Use
 
 
@@ -29,6 +31,7 @@ If stdin is not a terminal, strcat will operate in producer mode and write into 
        -x: do not exit on timeout, stream forever
        -p: produce, stdin -> /stream:topic
        -c: consume, /stream:regex -> stdout
+       -w seconds: seconds to wait after subscription (for rebalancing)
        -g: gid: consumer group id
 
     [root@t3dn01 ~]# time find / -type f | ./strcat /ingest:20160725

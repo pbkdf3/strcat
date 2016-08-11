@@ -4,78 +4,74 @@ To even build this you need a MapR cluster, the MapR sandbox (https://www.mapr.c
 
 ## Download the repository:
 
-    git clone https://xxx/xxx.git
+    git clone https://github.com/pbkdf3/strcat.git
 
 ## Build
-    cd strcat*
+    cd strcat
     ./build.sh
 
 There may be some warnings.  note version number. (what #?, oh right there isn't one. HINT).
 
-If stdin is a terminal, strcat will operate in consumer mode and read from the streamtopic regex provided as an argument.  If -x is used and in consumer mode, strcat will never exit, polling the stream and producing output until killed.  Otherwise it exits once the timeout is reached with no data, currently 1000ms.  You can change this in the consumer configuration in the code and recompile for now.  The timeout may be made an option in the future.  -x has no effect if in producer mode.  If -g is not specified an ephemeral consumer group id is assigned.  -g has no effect in producer mode.
+If stdin is a terminal, strcat will operate in consumer mode and read from the streamtopic regex provided as an argument.  If -x is used and in consumer mode, strcat will never exit, polling the stream and producing output until killed.  Otherwise it exits once the timeout is reached with no data, currently 1000ms.  You can change this in the consumer configuration in the code and recompile for now.  The timeout may be made an option in the future.  -x has no effect if in producer mode.  If -g is not specified an ephemeral consumer group id is assigned by the library (not by strcat).  -g has no effect in producer mode.
 
 If stdin is not a terminal, strcat will operate in producer mode and write into the streamtopic specified.  Regexes are not valid in producer mode.  In producer mode, strcat reads lines from stdin via getline() and puts each in the topic specified.  newlines are not included in the messages put into the stream.
 
--p and -c allow forcing producer and consumer mode, useful in contexts where stdin/stdout may be captured by another process, even if not used, such as when running strcat under clustershell.  Or if trynig to insert messages into a topic from the console interactively.
+-p and -c allow forcing producer and consumer mode, useful in contexts where stdin/stdout may be captured by another process, even if not used, such as when running strcat under clustershell.  -c is good for these situations.  If trynig to insert messages into a topic from the console interactively, -p can be used.
 
--w [seconds] gives consumers using the same gid to rebalance and find out about each other, otherwise if starting multiple processes at once under the same group, a single consumer will do all the work.  Userful when launching via clustershell over mulitple nodes
+-w [seconds] gives consumers using the same gid time to rebalance before starting, otherwise if starting multiple processes at once under the same group id, a single consumer may (will, in my experience) do all the work.  Userful when launching via clustershell over mulitple nodes, to for example grep a stream using your cluster.
 
 ## Use
 
+    $ maprcli stream create -path /files
+    Warning: produce/consume/topic permissions defaulting to creator. To change, execute 'maprcli stream edit -path /files -produceperm p -consumeperm p -topicperm p'
 
-    [root@t3dn01 ~]# maprcli stream create -path /ingest -defaultpartitions 4
-    Warning: produce/consume/topic permissions defaulting to creator. To change, execute 'maprcli stream edit -path /ingest -produceperm p -consumeperm p -topicperm p'
+    # basic input/output
+    $ find /usr -print | wc -l
+    33832
 
-    [root@t3dn01 ~]# ./strcat
-    usage: ./strcat [-xpc] [-g gid] /streamtopic
-       -x: do not exit on timeout, stream forever
-       -p: produce, stdin -> /stream:topic
-       -c: consume, /stream:regex -> stdout
-       -w seconds: seconds to wait after subscription (for rebalancing)
-       -g: gid: consumer group id
+    $ find /usr -print | strcat /files:usr
 
-    [root@t3dn01 ~]# time find / -type f | ./strcat /ingest:20160725
-    real	     0m1.818s
-    user	     0m1.710s
-    sys	     0m1.880s
-	
-    [root@t3dn01 ~]# time ./strcat /ingest:20160725 | wc -l
-    343589
-    real	0m2.267s
-    user	0m0.894s
-    sys	0m2.377s
-	
-    [root@t3dn01 ~]# ./strcat /ingest:20160725 | head
-    /boot/grub2/i386-pc/ohci.mod
-    /boot/grub2/i386-pc/part_acorn.mod
-    /boot/grub2/i386-pc/part_amiga.mod
-    /boot/grub2/i386-pc/part_apple.mod
-    /boot/grub2/i386-pc/part_bsd.mod
-    /boot/grub2/i386-pc/part_dfly.mod
-    /boot/grub2/i386-pc/part_dvh.mod
-    /boot/grub2/i386-pc/part_gpt.mod
-	/boot/grub2/i386-pc/part_msdos.mod
-    /boot/grub2/i386-pc/part_plan.mod
-    
-    [root@t3dn01 ~]# time ./strcat /ingest:20160725 | ./strcat /ingest:copy
-    real	     0m2.437s
-    user	     0m2.132s
-	sys	     0m2.775s
-    
-    [root@t3dn01 ~]# ./strcat '/ingest:copy' | head
-    /proc/sys/dev/mac_hid/mouse_button_emulatio
-    /proc/sys/dev/parport/default/spintim
-    /proc/sys/dev/parport/default/timeslic
-    /proc/sys/dev/parport/parport0/autoprob
-    /proc/sys/dev/parport/parport0/autoprobe
-    /proc/sys/dev/parport/parport0/autoprobe
-    /proc/sys/dev/parport/parport0/autoprobe
-	/proc/sys/dev/parport/parport0/autoprobe
-    /proc/sys/dev/parport/parport0/base-add
-    /proc/sys/dev/parport/parport0/devices/activ
-    
-    
-    
+    $ strcat /files:usr | wc -l
+    33832
+
+    # can use the console (stdin as tty) to produce with -p
+    $ strcat -p /files:hello
+    hello, world!
+    blah blah
+    $ strcat /files:hello
+    hello, world!
+    blah blah
+
+    # streaming/continous
+    $ inotifywait -m -r /proc | strcat /files:events &
+    [1] 5195
+    Setting up watches.  Beware: since -r was given, this may take a while!
+    Watches established.
+
+    $ strcat -g notify /files:events | wc -l
+    5692
+
+    # wait a bit ..
+    $ strcat -g notify /files:events | wc -l
+    2307
+
+    $ kill %1
+    [1]+  Terminated              inotifywait -m -r /proc | strcat /files:events
+
+    # make lots of messages (be mindful of your disks)
+    $ find / -type f | strcat /files:all
+
+    $ strcat /files:all | wc -l
+    215899
+
+    # hit ctrl-c after a bit (not too long!). pv is optional, this cluster is small vms...
+    $ strcat -x /files:all | pv | strcat /files:all
+    ^C99MiB 0:00:10 [  20MiB/s] [                     <=>
+
+    $ strcat /files:all | wc -l
+    5789787
+
+
 	
     
     

@@ -16,8 +16,7 @@
 */
 
 /* strcat - poorly named utility to treat mapr streams as files
- * by Daniel Reznick
- *
+ * by daniel reznick
  */
 
 #define _GNU_SOURCE

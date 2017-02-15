@@ -1,3 +1,20 @@
+XXX
+
+To compile under MapR 5.2 the following must first be done, due to an error or ommision in the headers under /opt/mapr/include/streams in 5.2.
+
+    $ sudo mkdir /opt/mapr/include/streams/common
+    $ sudo cp /usr/include/errno.h /opt/mapr/include/streams/common/
+
+Because of this, which is all that changed in these headers from 5.1 -> 5.2, neither common nor errno.h exist in 5.2
+
+    $ diff -r include_streams_5.1/types.h /opt/mapr/include/streams/types.h
+    11c11
+    < #include <errno.h>
+    ---
+    > #include "common/errno.h"
+
+XXX
+
 strcat - poorly named utility to treat mapr streams as files
 
 To even build this you need a MapR cluster, the MapR sandbox (https://www.mapr.com/products/mapr-sandbox-hadoop/download) will also work.  You can build and run strcat from a linux box with the MapR client installed, or from any cluster node.  You can not build unless you are either building on a cluster node or a computer with the mapr client installed.  I have only tested on linux, not OSX or Windows, though with a properly tweaked build.sh it should work on either.  You will need suitable development tools.  'yum -y groupinstall "Development Tools"' will work on centos (which the MapR sandbox VM uses), and "apt-get build-essential" should work on debian and derivatives, though I haven't tried to compile strcat anywhere but centos 6 and 7.

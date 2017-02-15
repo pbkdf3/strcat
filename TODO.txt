@@ -1,0 +1,15 @@
+- patches/pull requests welcome -
+
+TODO
+* offsets (output/seek/etc)
+* keys (input and output)
+* argument to set exit timeout (-x 1000 default, -x 0 never?)
+* rate limiting with a token bucket - messages/sec and bytes/sec. but which token bucket
+  maybe extract https://github.com/wolkykim/qlibc/blob/master/src/extensions/qtokenbucket.c from qlibc?
+* consider how cursors/offsets are managed, for fun. maybe commit after write to stdout?
+* non text based use cases - eol behavior etc. avro, others? if c-library exists ...
+* check out kafkacat for anything to steal, consider if forking for mapr streams worthwhile
+* oh yeah, tests
+
+DONE
+2017-02-15 * [-N] to exit after reading N messages (-1 for 1 message) - like head

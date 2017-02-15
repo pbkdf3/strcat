@@ -46,7 +46,7 @@
     }                                           
 
 
-#if 0
+#if 1
 #define DEBUG(...) fprintf(stderr, __VA_ARGS__);
 #else
 #define DEBUG(...) (void)0;
@@ -220,6 +220,9 @@ producer(const char *streamtopic)
                "streams_producer_record_create() failed"); 
         CHECK (streams_producer_send(producer, record, producer_cb, NULL),
                "streams_producer_send() failed");
+
+        total_records++;
+        if (opt_maxlines != 0 && total_records >= opt_maxlines) break;
     }
 
     /* final flush */

@@ -125,6 +125,9 @@ consumer(const char *streamtopic)
                 CHECK (streams_msg_get_value(records[rec], i, &val, &nval),
                        "streams_msg_get_value() failed");
                 DEBUG("%d retrieved\n", i);
+                if (nval==0) { /* what does this mean? */
+                    continue;
+                }
                 /* output half of "cat" */
                 write(1, val, nval);
                 write(1, "\n", 1); // could become optional
@@ -209,6 +212,8 @@ producer(const char *streamtopic)
         buf = (char *)malloc(read);
         memcpy(buf, line, read);
 
+        if (read==0) continue;
+            
         /* could be smarter, attempt to keep EOL out of stream */
         if (buf[read-1] == '\n') {
             read--;

@@ -46,7 +46,7 @@
     }                                           
 
 
-#if 1
+#if 0
 #define DEBUG(...) fprintf(stderr, __VA_ARGS__);
 #else
 #define DEBUG(...) (void)0;

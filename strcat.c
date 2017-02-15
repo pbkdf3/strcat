@@ -28,6 +28,9 @@
 #include <streams/streams.h>
 #include <sys/time.h>
 
+/* from http://ptspts.blogspot.com/2009/03/ascii-isdigit-isalpha-and-isxdigit.html */
+#define ISDIGIT(c) ((c) - '0' + 0U <= 9U)
+
 /* dumb but seems to work */
 #define CHECK(r, msg)                           \
     if (r != EXIT_SUCCESS) {                    \
@@ -35,7 +38,7 @@
         return(r);                              \
     }
 
-/* does not return, for callbacks that are typed void */
+/* does not return any value, for callbacks that are typed void */
 #define CHECK_VOID(r, msg)                      \
     if (r != EXIT_SUCCESS) {                    \
         fprintf(stderr, "%s - %d\n", msg,r);    \
@@ -52,10 +55,11 @@
 long opt_poll_timeout = 1000;
 long opt_sleep = 0;
 int opt_exit_on_timeout = 1;
-char *opt_group_id=NULL;
+char *opt_group_id = NULL;
+long opt_maxlines = 0;
+long total_records = 0;
 
-
-/* maybe will come in handy */
+/* maybe will come in handy for debugging someday */
 void 
 noop_rebalance_cb(streams_topic_partition_t *topic_partitions,
                   uint32_t topic_partitions_size,
@@ -98,7 +102,7 @@ consumer(const char *streamtopic)
     while (1) {
         streams_consumer_record_t *records;
         uint32_t nrecords;
-
+        
         CHECK (streams_consumer_poll(consumer, opt_poll_timeout, &records, &nrecords),
                "streams_consumer_poll() failed");
         DEBUG("%d records retrieved\n", nrecords);
@@ -116,7 +120,7 @@ consumer(const char *streamtopic)
             uint32_t nval;
             void *val;
 
-            /* no support for keys currently, currently in development */
+            /* XXX add support for keys */
             for (uint32_t i = 0; i < nmsg; ++i) {
                 CHECK (streams_msg_get_value(records[rec], i, &val, &nval),
                        "streams_msg_get_value() failed");
@@ -124,11 +128,19 @@ consumer(const char *streamtopic)
                 /* output half of "cat" */
                 write(1, val, nval);
                 write(1, "\n", 1); // could become optional
+                total_records++;
+                /* should use a different var as flag */
+                if (opt_maxlines != 0 && total_records >= opt_maxlines) {
+                    opt_maxlines = -1; /* we are done */
+                    break;
+                }
             }
             streams_consumer_record_destroy(records[rec]);
+            if (opt_maxlines == -1) break;
         }
         CHECK (streams_consumer_commit_all_sync(consumer),
                "streams_consumer_commit_all_sync() failed\n");
+        if (opt_maxlines == -1) break;
     }
     return (EXIT_SUCCESS);
 }
@@ -167,6 +179,7 @@ producer_init(const char *streamtopic,
     CHECK (streams_config_create(conf),
            "streams_config_create() failed");
 
+    /* ??? need to consider size */
     streams_config_set(*conf, "buffer.memory", "33554432");
     streams_config_set(*conf, "streams.buffer.max.time.ms", "1000");
     
@@ -221,7 +234,8 @@ producer(const char *streamtopic)
 void display_usage(char *name)
 {
     fprintf(stderr,
-            "usage: %s [-xpc] [-g gid] [-w seconds] /stream:regex\n"
+            "usage: %s [-N] [-xpc] [-g gid] [-w seconds] /stream:topicregex\n"
+            " -N: exit after reading N messages from stream or stdin, must be first argument\n"
             " -x: do not exit on timeout, stream forever\n"
             " -p: produce, stdin -> /stream:topic\n"
             " -c: consume, /stream:regex -> stdout\n"
@@ -241,6 +255,16 @@ main(int argc, char *argv[])
 
     opterr = 0;
 
+    if (1 < argc && argv[1][0] == '-' && ISDIGIT(argv[1][1])) {
+        /* whatever */
+        opt_maxlines = atoi(argv[1])*-1;
+        
+        /* Make the option we just parsed invisible to getopt. */
+        argv[1] = argv[0];
+        argv++;
+        argc--;
+    }
+    
     while ((c = getopt (argc, argv, "pcxg:w:")) != -1)
         switch (c) {
         case 'x':

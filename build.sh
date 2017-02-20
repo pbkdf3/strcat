@@ -10,8 +10,8 @@ GCC_OPTS="-std=c99 \
 
 
 # to enable linker to work (??)
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MAPR_HOME}/lib
-export LD_RUN_PATH=${LD_RUN_PATH}:${MAPR_HOME}/lib
+#export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MAPR_HOME}/lib
+export LD_RUN_PATH=${MAPR_HOME}/lib
 
 # compile, link and optionally install ;)
 gcc ${GCC_OPTS} strcat.c -o strcat

@@ -126,6 +126,10 @@ consumer(const char *streamtopic)
                        "streams_msg_get_value() failed");
                 DEBUG("%d retrieved\n", i);
                 if (nval==0) { /* what does this mean? */
+                    /* int64_t offset=0; */
+                    /* CHECK (streams_msg_get_offset(records[rec], i, &offset), */
+                    /*        "streams_msg_get_value() failed"); */
+                    /* fprintf(stderr,"empty message offset: %d\n",offset); */
                     continue;
                 }
                 /* output half of "cat" */

@@ -1,4 +1,5 @@
-XXX
+XXX turns out this was never meant to be a public API, though MapR did publish example code using it. XXX
+XXX UNMAINTAINED XXX
 
 To compile under MapR 5.2 the following must first be done, due to an error or ommision in the headers under /opt/mapr/include/streams in 5.2.
 
